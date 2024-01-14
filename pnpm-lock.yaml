@@ -5,9 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 devDependencies:
-  vite:
-    specifier: ^5.0.8
-    version: registry.npmmirror.com/vite@5.0.11
   vitest:
     specifier: ^1.2.0
     version: registry.npmmirror.com/vitest@1.2.0

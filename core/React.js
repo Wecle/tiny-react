@@ -23,14 +23,12 @@ function createElement (type, props, ...children) {
 function render (el, container) {
     const { type, props} = el
     const dom = type === 'TEXT_ELEMENT' ? document.createTextNode('') : document.createElement(type)
-    console.log(el, dom)
     Object.keys(props).forEach(key => {
         if (key !== 'children') {
             dom[key] = props[key]
         }
     })
     props.children.forEach(child => render(child, dom))
-    console.log(dom)
     container.append(dom)
 }
 
