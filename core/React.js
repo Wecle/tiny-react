@@ -1,3 +1,36 @@
+function createDom (type) {
+    return type === 'TEXT_ELEMENT' ? document.createTextNode('') : document.createElement(type)
+}
+
+function updateProps (dom, props) {
+    Object.keys(props).forEach(key => {
+        if (key !== 'children') {
+            dom[key] = props[key]
+        }
+    })
+}
+
+function initChildren (fiber) {
+    const children = fiber.props.children
+    let preChild = null
+    children.forEach((child, index) => {
+        const newFiber = {
+            type: child.type,
+            props: child.props,
+            child: null,
+            sibling: null,
+            parent: fiber,
+            dom: null
+        }
+        if (index === 0) {
+            fiber.child = newFiber
+        } else {
+            preChild.sibling = newFiber
+        }
+        preChild = newFiber
+    })
+}
+
 function createTextNode (nodeValue) {
     return {
         type: 'TEXT_ELEMENT',
@@ -20,16 +53,49 @@ function createElement (type, props, ...children) {
     }
 }
 
-function render (el, container) {
-    const { type, props} = el
-    const dom = type === 'TEXT_ELEMENT' ? document.createTextNode('') : document.createElement(type)
-    Object.keys(props).forEach(key => {
-        if (key !== 'children') {
-            dom[key] = props[key]
+function performWorkOfUnit (fiber) {
+    if (!fiber.dom) {
+        // 1.创建 dom
+        const dom = (fiber.dom = createDom(fiber.type))
+
+        fiber.parent.dom.append(dom)
+        // 2.更新 props
+        updateProps(dom, fiber.props)
+    }
+    // 3.转换链表，设置指针
+    initChildren(fiber)
+    // 4.返回下一个要执行的任务
+    if (fiber.child) {
+        return fiber.child
+    }
+    if (fiber.sibling) {
+        return fiber.sibling
+    }
+
+    return fiber.parent?.sibling
+}
+
+let nextWorkOfUnit = null
+function workLoop (deadline) {
+    let shouldYield = false
+    while (!shouldYield && nextWorkOfUnit) {
+        nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit)
+
+        shouldYield = deadline.timeRemaining() < 1
+    }
+
+    requestIdleCallback(workLoop)
+}
+
+requestIdleCallback(workLoop)
+
+function render (dom, container) {
+    nextWorkOfUnit = {
+        dom: container,
+        props: {
+            children: [dom]
         }
-    })
-    props.children.forEach(child => render(child, dom))
-    container.append(dom)
+    }
 }
 
 const React = {
