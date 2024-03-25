@@ -58,7 +58,7 @@ function performWorkOfUnit (fiber) {
         // 1.创建 dom
         const dom = (fiber.dom = createDom(fiber.type))
 
-        fiber.parent.dom.append(dom)
+        // fiber.parent.dom.append(dom)
         // 2.更新 props
         updateProps(dom, fiber.props)
     }
@@ -75,6 +75,7 @@ function performWorkOfUnit (fiber) {
     return fiber.parent?.sibling
 }
 
+let root = null
 let nextWorkOfUnit = null
 function workLoop (deadline) {
     let shouldYield = false
@@ -84,10 +85,26 @@ function workLoop (deadline) {
         shouldYield = deadline.timeRemaining() < 1
     }
 
+    if (!nextWorkOfUnit && root) {
+        commitRoot()
+    }
+
     requestIdleCallback(workLoop)
 }
 
 requestIdleCallback(workLoop)
+
+function commitRoot () {
+    commitWork(root.child)
+    root = null
+}
+
+function commitWork (fiber) {
+    if (!fiber) return
+    fiber.parent.dom.append(fiber.dom)
+    commitWork(fiber.child)
+    commitWork(fiber.sibling)
+}
 
 function render (dom, container) {
     nextWorkOfUnit = {
@@ -96,6 +113,8 @@ function render (dom, container) {
             children: [dom]
         }
     }
+
+    root = nextWorkOfUnit
 }
 
 const React = {
